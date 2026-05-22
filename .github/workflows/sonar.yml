@@ -18,7 +18,7 @@ on:
 jobs:
   check_organization:
     name: Check organization
-    uses: peldanotech/workflows/.github/workflows/org.yml@v2.0.0
+    uses: peldanotech/workflows/.github/workflows/org.yml@v3.2.0
 
   sonarqube_scan:
     needs: check_organization

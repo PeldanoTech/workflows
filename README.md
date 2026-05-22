@@ -10,7 +10,7 @@ Build a Docker image and push it to AWS Elastic Container Registry.
 jobs:
   build_and_push_to_ecr:
     name: Build and push image to ECR
-    uses: globaluy/workflows/.github/workflows/ecr.yml@v3.0.0
+    uses: peldanotech/workflows/.github/workflows/ecr.yml@v3.0.0
     with:
       aws-region: us-west-2
       ecr-repository: repository-name
@@ -27,7 +27,7 @@ Application must work with Docker.
 jobs:
   deploy_to_aws:
     name: Deploy ECR image to AWS
-    uses: globaluy/workflows/.github/workflows/docker.yml@v3.0.0
+    uses: peldanotech/workflows/.github/workflows/docker.yml@v3.0.0
     with:
       aws-region: us-west-2
       compose-file-name: production.yml
@@ -46,7 +46,7 @@ Deploy an AWS Elastic Container Registry image to AWS Elastic Kubernetes Service
 jobs:
   deploy_image_to_eks:
     name: Deploy ECR image to EKS
-    uses: globaluy/workflows/.github/workflows/eks.yml@v3.0.0
+    uses: peldanotech/workflows/.github/workflows/eks.yml@v3.0.0
     with:
       aws-region: us-west-2
       eks-cluster: cluster-name
@@ -64,7 +64,7 @@ AWS CloudFront invalidation is optional.
 jobs:
   build_and_push_to_s3:
     name: Build and push to S3 + CloudFront invalidation
-    uses: globaluy/workflows/.github/workflows/s3.yml@v3.0.0
+    uses: peldanotech/workflows/.github/workflows/s3.yml@v3.0.0
     with:
       aws-region: us-west-2
       s3-bucket-name: bucket-name
@@ -82,7 +82,7 @@ Generate and upload a code coverage report to SonarQube.
 jobs:
   sonarqube_scan:
     name: SonarQube scan
-    uses: globaluy/workflows/.github/workflows/sonar.yml@v3.0.0
+    uses: peldanotech/workflows/.github/workflows/sonar.yml@v3.0.0
     with:
       node-version: 18.x (optional)
     secrets: inherit
@@ -98,7 +98,7 @@ Deploy an AWS Elastic Container Registry image to AWS Elastic Container Service.
 jobs:
   deploy_image_to_ecs:
     name: Deploy ECR image to ECS
-    uses: globaluy/workflows/.github/workflows/ecs.yml@v3.0.0
+    uses: peldanotech/workflows/.github/workflows/ecs.yml@v3.0.0
     with:
       aws-region: us-west-2
       task-definition: task-definition
@@ -116,7 +116,7 @@ Build a Typescript application, push files to AWS Simple Storage Service and cre
 jobs:
   build_and_deploy_to_aws:
     name: Build and deploy to AWS
-    uses: globaluy/workflows/.github/workflows/deploy.yml@v3.0.0
+    uses: peldanotech/workflows/.github/workflows/deploy.yml@v3.0.0
     with:
       aws-region: us-west-2
       s3-bucket-name: bucket-name

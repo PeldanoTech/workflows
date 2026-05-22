@@ -1,0 +1,82 @@
+name: Deploy ECR image to AWS
+
+on:
+  workflow_call:
+    inputs:
+      aws-region:
+        type: string
+        required: false
+        default: us-west-2
+      compose-file-name:
+        type: string
+        required: true
+      s3-bucket-name:
+        type: string
+        required: true
+      application-name:
+        type: string
+        required: true
+        default: ec2-on-premises
+      deployment-group-name:
+        type: string
+        required: true
+      appspec-file-name:
+        type: string
+        required: false
+        default: appspec.yml
+    secrets:
+      PAT_TOKEN:
+        required: false
+      AWS_ACCESS_KEY:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  check_organization:
+    name: Check organization
+    uses: globaluy/workflows/.github/workflows/org.yml@v2.0.0
+
+  deploy_to_aws:
+    needs: check_organization
+    name: Deploy ECR image to AWS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          submodules: recursive
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Set up revision hash
+        id: revision-hash
+        run: echo "hash=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Zip and push revision files to S3
+        env:
+          REVISION_HASH: ${{ steps.revision-hash.outputs.hash }}
+          APPSPEC_FILE: ${{ inputs.appspec-file-name }}
+          COMPOSE_FILE: ${{ inputs.compose-file-name }}
+          BUCKET_NAME: ${{ inputs.s3-bucket-name }}
+        run: |
+          mv $APPSPEC_FILE a.yml && mv a.yml appspec.yml
+          mv $COMPOSE_FILE c.yml && mv c.yml compose.yml
+          zip -r $REVISION_HASH.zip infra docker appspec.yml compose.yml
+          aws s3 cp $REVISION_HASH.zip s3://$BUCKET_NAME
+
+      - name: Create deployment
+        if: success()
+        env:
+          BUCKET_NAME: ${{ inputs.s3-bucket-name }}
+          REVISION_HASH: ${{ steps.revision-hash.outputs.hash }}
+          APPLICATION_NAME: ${{ inputs.application-name }}
+          DEPLOYMENT_GROUP_NAME: ${{ inputs.deployment-group-name }}
+        run: aws deploy create-deployment --application-name $APPLICATION_NAME --deployment-group-name $DEPLOYMENT_GROUP_NAME --s3-location "bucket=$BUCKET_NAME,key=$REVISION_HASH.zip,bundleType=zip"

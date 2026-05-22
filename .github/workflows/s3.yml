@@ -1,0 +1,80 @@
+name: Build and push to S3 + CloudFront invalidation
+
+on:
+  workflow_call:
+    inputs:
+      aws-region:
+        type: string
+        required: false
+        default: us-west-2
+      s3-bucket-name:
+        type: string
+        required: true
+      cloud-front-distribution-id:
+        type: string
+        required: false
+      environment:
+        type: string
+        required: false
+        default: production
+      node-version:
+        type: string
+        required: false
+        default: 18.x
+    secrets:
+      PAT_TOKEN:
+        required: false
+      AWS_ACCESS_KEY:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+jobs:
+  check_organization:
+    name: Check organization
+    uses: globaluy/workflows/.github/workflows/org.yml@v2.0.0
+
+  build_and_push_to_s3:
+    needs: check_organization
+    name: Build and push to S3 + CloudFront invalidation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
+          submodules: recursive
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build application
+        if: success()
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: npm run build:$ENVIRONMENT
+
+      - name: Push to S3
+        if: success()
+        env:
+          BUCKET_NAME: ${{ inputs.s3-bucket-name }}
+        run: aws s3 sync dist/*/ s3://$BUCKET_NAME --delete
+
+      - name: Create CloudFront invalidation
+        if: ${{ success() && !!inputs.cloud-front-distribution-id }}
+        env:
+          DISTRIBUTION_ID: ${{ inputs.cloud-front-distribution-id }}
+        run: aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths '/*'

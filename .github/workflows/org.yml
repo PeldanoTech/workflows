@@ -1,0 +1,17 @@
+name: Check organization
+
+on:
+  workflow_call:
+
+jobs:
+  check_organization:
+    name: Check organization
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check organization caller
+        if: ${{ contains(vars.ORGS, github.repository_owner) }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.setFailed('This workflow can only be used by Global')
